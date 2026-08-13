@@ -1,69 +1,138 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useMemo } from 'react';
+import { MOCK_LISTINGS } from '../data/mockListings';
+import { Listing, ListingCategory } from '../types/listing';
+import { MainLayout } from '../components/templates/MainLayout';
+import { FloatingSearchBar } from '../components/organisms/FloatingSearchBar';
+import { CategoryBar } from '../components/organisms/CategoryBar';
+import { ListingGrid } from '../components/organisms/ListingGrid';
+import { MapView } from '../components/organisms/MapView';
+import { ListingDetailModal } from '../components/organisms/ListingDetailModal';
+import { BookingModal } from '../components/organisms/BookingModal';
+
+export default function HomePage() {
+  // Filter States
+  const [selectedCategory, setSelectedCategory] = useState<ListingCategory>('all');
+  const [searchLocation, setSearchLocation] = useState('');
+  const [checkIn, setCheckIn] = useState('');
+  const [guests, setGuests] = useState(1);
+  const [showTaxes, setShowTaxes] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
+  // Modal States
+  const [detailListing, setDetailListing] = useState<Listing | null>(null);
+  const [bookingInfo, setBookingInfo] = useState<{
+    isOpen: boolean;
+    listing: Listing | null;
+    nights: number;
+    totalPrice: number;
+  }>({
+    isOpen: false,
+    listing: null,
+    nights: 3,
+    totalPrice: 0,
+  });
+
+  // Filter listings calculation
+  const filteredListings = useMemo(() => {
+    return MOCK_LISTINGS.filter((item) => {
+      // Category match
+      if (selectedCategory !== 'all' && item.category !== selectedCategory) {
+        return false;
+      }
+      // Location search match
+      if (searchLocation.trim() !== '') {
+        const query = searchLocation.toLowerCase();
+        const locMatch =
+          item.location.city.toLowerCase().includes(query) ||
+          item.location.state.toLowerCase().includes(query) ||
+          item.location.country.toLowerCase().includes(query) ||
+          item.title.toLowerCase().includes(query);
+        if (!locMatch) return false;
+      }
+      // Guest capacity match
+      if (item.maxGuests < guests) {
+        return false;
+      }
+      return true;
+    });
+  }, [selectedCategory, searchLocation, guests]);
+
+  const handleResetFilters = () => {
+    setSelectedCategory('all');
+    setSearchLocation('');
+    setCheckIn('');
+    setGuests(1);
+  };
+
+  const handleConfirmReservation = (listing: Listing, nights: number, total: number) => {
+    setDetailListing(null);
+    setBookingInfo({
+      isOpen: true,
+      listing,
+      nights,
+      totalPrice: total,
+    });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <MainLayout onOpenFavorites={() => alert('Favoritos guardados localmente')}>
+      {/* Sticky Header Container for Search Bar & Categories */}
+      <div className="sticky top-20 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
+        <FloatingSearchBar
+          location={searchLocation}
+          onLocationChange={setSearchLocation}
+          checkIn={checkIn}
+          onCheckInChange={setCheckIn}
+          guests={guests}
+          onGuestsChange={setGuests}
+          onSearch={() => {}}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            Holaa {"compañeros"}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              feos
-            </code>{" "}
-            ly.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <CategoryBar
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          showTaxes={showTaxes}
+          onToggleTaxes={setShowTaxes}
+          viewMode={viewMode}
+          onToggleViewMode={setViewMode}
+        />
+      </div>
+
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        {viewMode === 'grid' ? (
+          <ListingGrid
+            listings={filteredListings}
+            showTaxes={showTaxes}
+            onSelectListing={(listing) => setDetailListing(listing)}
+            onResetFilters={handleResetFilters}
+          />
+        ) : (
+          <MapView
+            listings={filteredListings}
+            showTaxes={showTaxes}
+            onSelectListing={(listing) => setDetailListing(listing)}
+          />
+        )}
+      </div>
+
+      {/* Detail Quick View Modal */}
+      <ListingDetailModal
+        listing={detailListing}
+        onClose={() => setDetailListing(null)}
+        onConfirmReservation={handleConfirmReservation}
+      />
+
+      {/* Booking Confirmation Checkout Modal */}
+      <BookingModal
+        isOpen={bookingInfo.isOpen}
+        listing={bookingInfo.listing}
+        nights={bookingInfo.nights}
+        totalPrice={bookingInfo.totalPrice}
+        onClose={() => setBookingInfo((prev) => ({ ...prev, isOpen: false }))}
+      />
+    </MainLayout>
   );
 }
